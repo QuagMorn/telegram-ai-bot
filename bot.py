@@ -1,6 +1,6 @@
 import os
 import logging
-from openai import OpenAI
+from groq import Groq
 from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
 
@@ -9,18 +9,12 @@ logging.basicConfig(
     level=logging.INFO
 )
 
+groq_client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
 TELEGRAM_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
-OPENROUTER_API_KEY = os.environ.get("OPENROUTER_API_KEY")
 
-client = OpenAI(
-    base_url="https://openrouter.ai/api/v1",
-    api_key=OPENROUTER_API_KEY,
-)
+conversation_histories = {}
 
 SYSTEM_PROMPT = "You are a helpful, friendly, and knowledgeable AI assistant. Answer questions clearly and concisely. Be conversational and engaging."
-
-# Store conversation history per user
-conversation_histories = {}
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
@@ -56,13 +50,14 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
     try:
-        response = client.chat.completions.create(
-            model="meta-llama/llama-3.3-70b-instruct:free",
+        response = groq_client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
             messages=[
                 {"role": "system", "content": SYSTEM_PROMPT},
                 *conversation_histories[user_id]
             ],
             max_tokens=1024,
+            temperature=0.7
         )
 
         assistant_message = response.choices[0].message.content
@@ -74,11 +69,10 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         await update.message.reply_text(assistant_message)
 
-except Exception as e:
-        logging.error(f"Full error: {type(e).__name__}: {e}")
-        await update.message.reply_text(
-            f"⚠️ Error: {type(e).__name__}: {str(e)[:200]}"
-        )
+    except Exception as e:
+        error_msg = f"{type(e).__name__}: {str(e)[:200]}"
+        logging.error(f"Full error: {error_msg}")
+        await update.message.reply_text(f"⚠️ Error: {error_msg}")
 
 def main():
     app = Application.builder().token(TELEGRAM_TOKEN).build()
