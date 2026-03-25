@@ -9,8 +9,8 @@ logging.basicConfig(
     level=logging.INFO
 )
 
-groq_client = Groq(api_key=os.environ.get("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"))
-TELEGRAM_TOKEN = os.environ.get("8779917489:AAFpkZXrD1PFpLmCOU7qMxm_DMAGEEMIiHo")
+groq_client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
+TELEGRAM_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
 
 # Store conversation history per user
 conversation_histories = {}
